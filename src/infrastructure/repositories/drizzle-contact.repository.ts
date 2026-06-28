@@ -1,4 +1,4 @@
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import type { Contact } from "../../domain/entities/contact";
 import type { ContactRepository } from "../../domain/repositories/contact.repository";
 import type {
@@ -185,12 +185,24 @@ export class DrizzleContactRepository implements ContactRepository {
       pagePersons = await this.db.select().from(persons).limit(filters.limit).offset(offset);
     }
 
-    const data: Contact[] = [];
-    for (const person of pagePersons) {
-      const phoneRows = await this.loadPhones(person.id);
-      const addressRows = await this.loadAddresses(person.id);
-      data.push(this.toContact(person, phoneRows, addressRows));
-    }
+    const pageIds = pagePersons.map((person) => person.id);
+    const [allPhoneRows, allAddressRows] =
+      pageIds.length > 0
+        ? await Promise.all([
+            this.loadPhonesForPersonIds(pageIds),
+            this.loadAddressesForPersonIds(pageIds),
+          ])
+        : [[], []];
+    const phonesByPersonId = this.groupByPersonId(allPhoneRows);
+    const addressesByPersonId = this.groupByPersonId(allAddressRows);
+
+    const data = pagePersons.map((person) =>
+      this.toContact(
+        person,
+        phonesByPersonId.get(person.id) ?? [],
+        addressesByPersonId.get(person.id) ?? []
+      )
+    );
 
     return {
       data,
@@ -242,6 +254,12 @@ export class DrizzleContactRepository implements ContactRepository {
   }
 
   private async loadPhones(personId: number) {
+    return this.loadPhonesForPersonIds([personId]);
+  }
+
+  private async loadPhonesForPersonIds(personIds: number[]) {
+    if (personIds.length === 0) return [];
+
     return this.db
       .select({
         id: phones.id,
@@ -255,11 +273,30 @@ export class DrizzleContactRepository implements ContactRepository {
       })
       .from(phones)
       .innerJoin(phoneTypes, eq(phoneTypes.id, phones.phoneTypeId))
-      .where(eq(phones.personId, personId));
+      .where(inArray(phones.personId, personIds));
   }
 
   private async loadAddresses(personId: number) {
-    return this.db.select().from(addresses).where(eq(addresses.personId, personId));
+    return this.loadAddressesForPersonIds([personId]);
+  }
+
+  private async loadAddressesForPersonIds(personIds: number[]) {
+    if (personIds.length === 0) return [];
+
+    return this.db.select().from(addresses).where(inArray(addresses.personId, personIds));
+  }
+
+  private groupByPersonId<T extends { personId: number }>(rows: T[]): Map<number, T[]> {
+    const grouped = new Map<number, T[]>();
+    for (const row of rows) {
+      const existing = grouped.get(row.personId);
+      if (existing) {
+        existing.push(row);
+      } else {
+        grouped.set(row.personId, [row]);
+      }
+    }
+    return grouped;
   }
 
   private toContact(
