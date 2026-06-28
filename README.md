@@ -181,6 +181,8 @@ npm run openapi:generate
 
 8. **Feature modules + composition root** — Each bounded context has a module in `src/modules/` that wires repository → use cases → router. `src/composition/register-modules.ts` registers and bootstraps modules; `createApp()` stays a thin orchestrator. Easy to test wiring per module or swap the HTTP adapter.
 
+9. **Use case per action, not a generic CRUD service** — There is no `ContactService` with shared `create` / `update` / `delete` methods. Each API operation has its own use case because the rules differ: create checks email uniqueness and phone types; update requires at least one field and only re-validates email when it changes. Repositories handle data access; use cases own business rules.
+
 ### Project structure
 
 ```
@@ -387,6 +389,8 @@ npm run openapi:generate
 7. **OpenAPI al arrancar** — La spec se regenera en cada inicio para mantenerla alineada con Zod. Swagger UI en `/doc` solo en desarrollo.
 
 8. **Módulos por feature + composition root** — Cada bounded context tiene un módulo en `src/modules/` que conecta repositorio → casos de uso → router. `src/composition/register-modules.ts` registra y arranca los módulos; `createApp()` queda como orquestador delgado. Fácil de testear el wiring por módulo o reemplazar el adaptador HTTP.
+
+9. **Un caso de uso por acción, no un servicio CRUD genérico** — No hay un `ContactService` con métodos compartidos `create` / `update` / `delete`. Cada operación de la API tiene su propio caso de uso porque las reglas difieren: create valida email único y tipos de teléfono; update exige al menos un campo y solo revalida el email si cambia. Los repositorios acceden a datos; los casos de uso contienen las reglas de negocio.
 
 ### Estructura del proyecto
 
