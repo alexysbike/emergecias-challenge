@@ -3,15 +3,7 @@ import { z } from "zod";
 
 const nodeEnvSchema = z.enum(["development", "test", "production"]);
 
-const logLevelSchema = z.enum([
-  "fatal",
-  "error",
-  "warn",
-  "info",
-  "debug",
-  "trace",
-  "silent",
-]);
+const logLevelSchema = z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]);
 
 function defaultLogLevel(nodeEnv: z.infer<typeof nodeEnvSchema>): z.infer<typeof logLevelSchema> {
   if (nodeEnv === "test") {
