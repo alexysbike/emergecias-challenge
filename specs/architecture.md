@@ -972,64 +972,66 @@ Rule highlights:
 
 ## Dependencies
 
+**Fuente de verdad:** [`package.json`](../package.json). Rangos y versiones exactas viven solo ahí; esta sección describe roles, no duplica números.
+
 ### Runtime
 
-```json
-{
-  "express": "^5.x",
-  "drizzle-orm": "^0.x",
-  "better-sqlite3": "^11.x",
-  "zod": "^3.x",
-  "@asteasolutions/zod-to-openapi": "^7.x",
-  "swagger-ui-express": "^5.x"
-}
-```
+| Package | Role |
+|---------|------|
+| `express` | HTTP framework (Express 5 adapter) |
+| `drizzle-orm` | Query builder + types |
+| `better-sqlite3` | SQLite driver |
+| `zod` | Request validation + OpenAPI source |
+| `@asteasolutions/zod-to-openapi` | Zod → OpenAPI generation |
+| `swagger-ui-express` | Swagger UI at `/doc` (dev only) |
+| `pino` | Structured logging |
+| `pino-http` | HTTP request logging middleware |
 
 ### Dev
 
-```json
-{
-  "typescript": "^6.x",
-  "tsx": "^4.x",
-  "drizzle-kit": "^0.x",
-  "@types/better-sqlite3": "^7.x",
-  "@types/swagger-ui-express": "^4.x",
-  "jest": "^29.x",
-  "ts-jest": "^29.x",
-  "@types/jest": "^29.x",
-  "supertest": "^7.x",
-  "@types/supertest": "^6.x",
-  "eslint": "^9.x",
-  "@eslint/js": "^9.x",
-  "typescript-eslint": "^8.x",
-  "eslint-config-prettier": "^9.x",
-  "prettier": "^3.x"
-}
-```
+| Package | Role |
+|---------|------|
+| `typescript` | Type checking + `tsc` build |
+| `tsx` | Dev server, migrations, seeds, scripts |
+| `drizzle-kit` | Migrations CLI (`db:generate`, `db:studio`) |
+| `@types/better-sqlite3` | Types for SQLite driver |
+| `@types/express` | Types for Express |
+| `@types/swagger-ui-express` | Types for Swagger UI |
+| `jest` | Test runner |
+| `ts-jest` | TypeScript transform for Jest |
+| `@types/jest` | Jest types |
+| `supertest` | HTTP integration tests |
+| `@types/supertest` | Supertest types |
+| `@types/node` | Node.js types |
+| `eslint` | Linting |
+| `@eslint/js` | ESLint recommended rules |
+| `typescript-eslint` | TypeScript ESLint plugin |
+| `eslint-config-prettier` | Disable ESLint rules that conflict with Prettier |
+| `prettier` | Code formatting |
+| `pino-pretty` | Pretty-print logs in development |
 
 ---
 
 ## npm scripts
 
-```json
-{
-  "dev": "NODE_ENV=development tsx watch src/index.ts",
-  "build": "tsc",
-  "start": "NODE_ENV=production node dist/index.js",
-  "db:generate": "drizzle-kit generate",
-  "db:migrate": "tsx src/infrastructure/database/migrate.ts",
-  "db:seed": "tsx src/infrastructure/database/seed/run-seed.ts",
-  "openapi:generate": "tsx src/scripts/generate-openapi.ts",
-  "test": "jest",
-  "test:watch": "jest --watch",
-  "test:coverage": "jest --coverage",
-  "lint": "eslint src tests",
-  "lint:fix": "eslint src tests --fix",
-  "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
-  "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
-  "validate": "npm run lint && npm run format:check && npm run test && npm run build"
-}
-```
+**Fuente de verdad:** [`package.json`](../package.json). Comandos y flags exactos viven solo ahí.
+
+| Script | Purpose |
+|--------|---------|
+| `dev` | Dev server with hot reload |
+| `build` | TypeScript compile + copy migrations to `dist/` |
+| `start` | Production server |
+| `db:generate` | Generate Drizzle migrations |
+| `db:migrate` | Apply pending migrations |
+| `db:seed` | Seed reference data (phone types) |
+| `db:studio` | Drizzle Studio |
+| `openapi:generate` | Regenerate OpenAPI spec without starting the server |
+| `test` | Jest (serial, `--runInBand`) |
+| `test:watch` | Jest watch mode |
+| `test:coverage` | Jest with coverage |
+| `lint` / `lint:fix` | ESLint |
+| `format` / `format:check` | Prettier |
+| `validate` | lint → format check → test → build |
 
 ---
 
