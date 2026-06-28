@@ -4,9 +4,6 @@ import type { ListContactsUseCase } from "../../../application/contacts/list-con
 import type { GetContactUseCase } from "../../../application/contacts/get-contact.use-case";
 import type { UpdateContactUseCase } from "../../../application/contacts/update-contact.use-case";
 import type { DeleteContactUseCase } from "../../../application/contacts/delete-contact.use-case";
-import { ActivitiesRouter, type ActivityDeps } from "../activities/activities.router";
-import { PhonesRouter, type PhoneDeps } from "../phones/phones.router";
-import { AddressesRouter, type AddressDeps } from "../addresses/addresses.router";
 import { CreateContactRoute } from "./create-contact.route";
 import { ListContactsRoute } from "./list-contacts.route";
 import { GetContactRoute } from "./get-contact.route";
@@ -21,12 +18,16 @@ export interface ContactDeps {
   deleteContact: DeleteContactUseCase;
 }
 
-export type ContactsRouterDeps = ContactDeps & ActivityDeps & PhoneDeps & AddressDeps;
+export interface ContactNestedRouters {
+  activities: HttpRouter;
+  phones: HttpRouter;
+  addresses: HttpRouter;
+}
 
 export class ContactsRouter extends HttpRouter {
   readonly path = "/contacts";
 
-  static create(deps: ContactsRouterDeps): ContactsRouter {
+  static create(deps: ContactDeps, nested: ContactNestedRouters): ContactsRouter {
     return new ContactsRouter()
       .register(
         new CreateContactRoute(deps.createContact),
@@ -35,8 +36,6 @@ export class ContactsRouter extends HttpRouter {
         new UpdateContactRoute(deps.updateContact),
         new DeleteContactRoute(deps.deleteContact)
       )
-      .mount(ActivitiesRouter.create(deps))
-      .mount(PhonesRouter.create(deps))
-      .mount(AddressesRouter.create(deps));
+      .mount(nested.activities, nested.phones, nested.addresses);
   }
 }

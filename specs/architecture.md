@@ -42,7 +42,8 @@ Related specs: [models.md](./models.md), [endpoints.md](./endpoints.md).
 │  Drizzle repos · SQLite · Express adapter · seed              │
 └─────────────────────────────────────────────────────────────┘
 
-Composition root (`src/composition/`) wires everything at startup.
+Composition root (`src/composition/`) orchestrates feature modules at startup.
+Each module wires its own repository → use cases → router slice.
 ```
 
 ---
@@ -149,8 +150,22 @@ src/
 │       └── env.ts                       # PORT, DATABASE_PATH, NODE_ENV
 │
 ├── composition/
-│   ├── create-app.ts                    # DI wiring
+│   ├── module-context.ts              # Shared context + AppModule contract
+│   ├── register-modules.ts            # Module registry and bootstrap
+│   ├── create-app.ts                  # Thin orchestrator
 │   └── create-http-server.ts
+│
+├── modules/
+│   ├── health/
+│   │   └── health.module.ts
+│   ├── contacts/
+│   │   └── contact.module.ts
+│   ├── activities/
+│   │   └── activity.module.ts
+│   ├── phones/
+│   │   └── phone.module.ts
+│   └── addresses/
+│       └── address.module.ts
 │
 ├── scripts/
 │   └── generate-openapi.ts
@@ -229,8 +244,56 @@ Example flow — `CreateContactUseCase`:
 
 ### Composition root
 
-- `createApp()` / `createHttpServer()` builds: DB client → repositories → use cases → routes → `HttpServer`.
-- Single place to swap Express for another adapter in tests or future migration.
+The composition layer is split into a thin orchestrator and feature modules:
+
+1. **`createApp()`** — loads env, creates the DB client, delegates to `bootstrapModules()`, returns `{ env, db, routers }`.
+2. **`bootstrapModules()`** (`register-modules.ts`) — registry of leaf modules (health, activities, phones, addresses), composes the contact aggregator module with nested routers, runs `onInit` hooks, and collects root routers.
+3. **Feature modules** (`src/modules/*/`) — each bounded context owns its wiring: repository → use cases → router. Nested resources (phones, addresses, activities) export routers via `AppModule.nested`; the contact module mounts them.
+
+`createHttpServer()` calls `createApp()` and passes routers to `ExpressHttpServer`. Tests use the same entry point via `createApp({ databasePath })`.
+
+#### Module contract
+
+```typescript
+// composition/module-context.ts
+export interface ModuleContext {
+  env: Env;
+  db: DbClient;
+}
+
+export interface AppModule {
+  name: string;
+  routers?: HttpRouter[];              // root-level routers (e.g. /health, /contacts)
+  nested?: Record<string, HttpRouter>; // routers mounted by a parent (e.g. phones under contacts)
+  onInit?: (ctx: ModuleContext) => Promise<void>;
+}
+```
+
+#### Example — phone module
+
+```typescript
+// modules/phones/phone.module.ts
+export function createPhoneModule(ctx: ModuleContext): AppModule {
+  const repository = new DrizzlePhoneRepository(ctx.db);
+  const deps = {
+    createPhone: new CreatePhoneUseCase(repository),
+    // ...
+  };
+  return {
+    name: "phones",
+    nested: { phones: PhonesRouter.create(deps) },
+    onInit: async (moduleCtx) => ensurePhoneTypesSeeded(moduleCtx.db),
+  };
+}
+```
+
+#### Adding a new feature
+
+1. Create `src/modules/<feature>/<feature>.module.ts` implementing `AppModule`.
+2. Register the factory in `register-modules.ts` (`leafModuleFactories` or aggregator logic).
+3. If nested under contacts, export the router via `nested` and mount it in `createContactModule`.
+
+Single place to swap Express for another adapter in tests or future migration: `createHttpServer()`.
 
 ---
 
@@ -514,14 +577,16 @@ export class ContactsCollectionRoute extends HttpRoute {
 }
 ```
 
-**Router registration (nested):**
+**Router registration (nested via modules):**
+
+Each feature module builds its router; the contact module mounts nested routers passed in at composition time:
 
 ```typescript
 // presentation/routes/contacts/contacts.router.ts
 export class ContactsRouter extends HttpRouter {
   readonly path = "/contacts";
 
-  static create(deps: ContactsRouterDeps): ContactsRouter {
+  static create(deps: ContactDeps, nested: ContactNestedRouters): ContactsRouter {
     return new ContactsRouter()
       .register(
         new CreateContactRoute(deps.createContact),
@@ -530,13 +595,23 @@ export class ContactsRouter extends HttpRouter {
         new UpdateContactRoute(deps.updateContact),
         new DeleteContactRoute(deps.deleteContact),
       )
-      .mount(ActivitiesRouter.create(deps));
+      .mount(nested.activities, nested.phones, nested.addresses);
   }
+}
+
+// modules/contacts/contact.module.ts
+export function createContactModule(ctx: ModuleContext, nested: ContactNestedRouters): AppModule {
+  const repository = new DrizzleContactRepository(ctx.db);
+  const deps = { /* contact use cases */ };
+  return {
+    name: "contacts",
+    routers: [ContactsRouter.create(deps, nested)],
+  };
 }
 
 // presentation/routes/activities/activities.router.ts
 export class ActivitiesRouter extends HttpRouter {
-  readonly path = "/:personId/activities";
+  readonly path = "/:id/activities";
 
   static create(deps: ActivityDeps): ActivitiesRouter {
     return new ActivitiesRouter().register(

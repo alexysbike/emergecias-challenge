@@ -179,7 +179,7 @@ npm run openapi:generate
 
 7. **OpenAPI on bootstrap** — Spec is regenerated on every start so it stays in sync with Zod schemas. Swagger UI at `/doc` is dev-only.
 
-8. **Composition root** — `src/composition/` wires DB → repositories → use cases → routes in one place, easy to swap for tests.
+8. **Feature modules + composition root** — Each bounded context has a module in `src/modules/` that wires repository → use cases → router. `src/composition/register-modules.ts` registers and bootstraps modules; `createApp()` stays a thin orchestrator. Easy to test wiring per module or swap the HTTP adapter.
 
 ### Project structure
 
@@ -189,8 +189,9 @@ src/
 ├── application/      # Use cases and DTOs
 ├── infrastructure/   # Drizzle, Express adapter, logging
 ├── presentation/     # Routes, validators, mappers, OpenAPI
+├── modules/          # Feature modules (DI wiring per bounded context)
 ├── shared/           # Errors, config
-├── composition/      # Dependency wiring
+├── composition/      # Module registry and app bootstrap
 └── index.ts          # Bootstrap
 
 tests/
@@ -385,7 +386,7 @@ npm run openapi:generate
 
 7. **OpenAPI al arrancar** — La spec se regenera en cada inicio para mantenerla alineada con Zod. Swagger UI en `/doc` solo en desarrollo.
 
-8. **Composition root** — `src/composition/` conecta BD → repos → casos de uso → rutas; fácil de reemplazar en tests.
+8. **Módulos por feature + composition root** — Cada bounded context tiene un módulo en `src/modules/` que conecta repositorio → casos de uso → router. `src/composition/register-modules.ts` registra y arranca los módulos; `createApp()` queda como orquestador delgado. Fácil de testear el wiring por módulo o reemplazar el adaptador HTTP.
 
 ### Estructura del proyecto
 
@@ -395,8 +396,9 @@ src/
 ├── application/      # Casos de uso y DTOs
 ├── infrastructure/   # Drizzle, adaptador Express, logging
 ├── presentation/     # Rutas, validadores, mappers, OpenAPI
+├── modules/          # Módulos por feature (wiring DI por bounded context)
 ├── shared/           # Errores, config
-├── composition/      # Inyección de dependencias
+├── composition/      # Registro de módulos y bootstrap de la app
 └── index.ts          # Bootstrap
 
 tests/
