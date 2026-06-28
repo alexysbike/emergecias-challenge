@@ -1,17 +1,19 @@
 import { resolve } from "path";
+import { z } from "zod";
 
-export interface Env {
-  port: number;
-  databasePath: string;
-  nodeEnv: string;
-  isProduction: boolean;
-  logLevel: string;
-}
+const nodeEnvSchema = z.enum(["development", "test", "production"]);
 
-function resolveLogLevel(nodeEnv: string): string {
-  if (process.env.LOG_LEVEL) {
-    return process.env.LOG_LEVEL;
-  }
+const logLevelSchema = z.enum([
+  "fatal",
+  "error",
+  "warn",
+  "info",
+  "debug",
+  "trace",
+  "silent",
+]);
+
+function defaultLogLevel(nodeEnv: z.infer<typeof nodeEnvSchema>): z.infer<typeof logLevelSchema> {
   if (nodeEnv === "test") {
     return "silent";
   }
@@ -21,13 +23,32 @@ function resolveLogLevel(nodeEnv: string): string {
   return "debug";
 }
 
+const envSchema = z
+  .object({
+    NODE_ENV: nodeEnvSchema.default("development"),
+    PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+    DATABASE_PATH: z.string().min(1).default("./data/app.db"),
+    LOG_LEVEL: logLevelSchema.optional(),
+  })
+  .transform((raw) => ({
+    port: raw.PORT,
+    databasePath: resolve(raw.DATABASE_PATH),
+    nodeEnv: raw.NODE_ENV,
+    isProduction: raw.NODE_ENV === "production",
+    logLevel: raw.LOG_LEVEL ?? defaultLogLevel(raw.NODE_ENV),
+  }));
+
+export type Env = z.infer<typeof envSchema>;
+
 export function loadEnv(): Env {
-  const nodeEnv = process.env.NODE_ENV ?? "development";
-  return {
-    port: Number(process.env.PORT ?? 3000),
-    databasePath: resolve(process.env.DATABASE_PATH ?? "./data/app.db"),
-    nodeEnv,
-    isProduction: nodeEnv === "production",
-    logLevel: resolveLogLevel(nodeEnv),
-  };
+  const result = envSchema.safeParse(process.env);
+
+  if (!result.success) {
+    const details = result.error.issues
+      .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)
+      .join("\n");
+    throw new Error(`Invalid environment configuration:\n${details}`);
+  }
+
+  return result.data;
 }
