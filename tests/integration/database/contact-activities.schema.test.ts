@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { createDbClient, closeDbClient } from "../../../src/infrastructure/database/client";
 import { contactActivities, persons } from "../../../src/infrastructure/database/schema";
-import { setupTestDb } from "../../helpers/test-db";
+import { assertActivityTypeCheckConstraint, setupTestDb } from "../../helpers/test-db";
 
 describe("contact_activities activity_type CHECK constraint", () => {
   let dbPath: string;
@@ -11,6 +11,7 @@ describe("contact_activities activity_type CHECK constraint", () => {
     const testDb = await setupTestDb();
     dbPath = testDb.dbPath;
     cleanup = testDb.cleanup;
+    assertActivityTypeCheckConstraint(dbPath);
   });
 
   afterAll(() => {
@@ -57,19 +58,22 @@ describe("contact_activities activity_type CHECK constraint", () => {
     const db = createDbClient(dbPath);
 
     await expect(
-      db.insert(contactActivities).values({
-        personId: person.id,
-        activityType: "sms",
-        activityDate: "2026-06-26T10:30:00.000Z",
-      }),
+      db
+        .insert(contactActivities)
+        .values({
+          personId: person.id,
+          activityType: "sms",
+          activityDate: "2026-06-26T10:30:00.000Z",
+        })
+        .returning()
     ).rejects.toThrow(/CHECK constraint failed/);
 
     expect(() =>
       db.$client
         .prepare(
-          "INSERT INTO contact_activities (person_id, activity_type, activity_date) VALUES (?, ?, ?)",
+          "INSERT INTO contact_activities (person_id, activity_type, activity_date) VALUES (?, ?, ?)"
         )
-        .run(person.id, "invalid", "2026-06-26T10:30:00.000Z"),
+        .run(person.id, "invalid", "2026-06-26T10:30:00.000Z")
     ).toThrow(/CHECK constraint failed/);
 
     const rows = await db

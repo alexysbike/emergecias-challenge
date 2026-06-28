@@ -4,13 +4,16 @@ import { createTestApp } from "../../helpers/test-app";
 
 describe("Phones routes", () => {
   let cleanup: () => void;
-  let app: Awaited<ReturnType<typeof createTestApp>>;
+  let disposeApp: () => void;
+  let app: Awaited<ReturnType<typeof createTestApp>>["app"];
   let contactId: number;
 
   beforeAll(async () => {
     const testDb = await setupTestDb();
     cleanup = testDb.cleanup;
-    app = await createTestApp(testDb.dbPath);
+    const testApp = await createTestApp(testDb.dbPath);
+    app = testApp.app;
+    disposeApp = testApp.dispose;
 
     const contact = await request(app).post("/contacts").send({
       firstName: "Phone",
@@ -22,6 +25,7 @@ describe("Phones routes", () => {
   });
 
   afterAll(() => {
+    disposeApp();
     cleanup();
   });
 
@@ -52,9 +56,7 @@ describe("Phones routes", () => {
       phoneTypeId: 3,
     });
 
-    const response = await request(app).get(
-      `/contacts/${contactId}/phones/${created.body.id}`
-    );
+    const response = await request(app).get(`/contacts/${contactId}/phones/${created.body.id}`);
     expect(response.status).toBe(200);
     expect(response.body.number).toBe("+5491187654321");
   });
@@ -84,9 +86,7 @@ describe("Phones routes", () => {
     );
     expect(deleteResponse.status).toBe(204);
 
-    const getResponse = await request(app).get(
-      `/contacts/${contactId}/phones/${created.body.id}`
-    );
+    const getResponse = await request(app).get(`/contacts/${contactId}/phones/${created.body.id}`);
     expect(getResponse.status).toBe(404);
   });
 

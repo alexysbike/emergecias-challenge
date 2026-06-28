@@ -16,7 +16,7 @@ export const contactActivities = sqliteTable(
   (table) => [
     check(
       "contact_activities_activity_type_check",
-      sql`${table.activityType} IN ('call', 'meeting', 'email')`,
+      sql`${table.activityType} IN ('call', 'meeting', 'email')`
     ),
-  ],
+  ]
 );

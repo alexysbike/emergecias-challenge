@@ -101,11 +101,7 @@ export class DrizzlePhoneRepository implements PhoneRepository {
     }));
   }
 
-  async update(
-    personId: number,
-    phoneId: number,
-    input: UpdatePhoneInput
-  ): Promise<PhoneWithType> {
+  async update(personId: number, phoneId: number, input: UpdatePhoneInput): Promise<PhoneWithType> {
     const existing = await this.findById(personId, phoneId);
     if (!existing) {
       throw new NotFoundError("Phone not found");
@@ -131,8 +127,6 @@ export class DrizzlePhoneRepository implements PhoneRepository {
     if (!existing) {
       throw new NotFoundError("Phone not found");
     }
-    await this.db
-      .delete(phones)
-      .where(and(eq(phones.id, phoneId), eq(phones.personId, personId)));
+    await this.db.delete(phones).where(and(eq(phones.id, phoneId), eq(phones.personId, personId)));
   }
 }

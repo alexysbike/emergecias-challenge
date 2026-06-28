@@ -1,8 +1,5 @@
 import type { PhoneWithType } from "../../domain/entities/contact";
-import type {
-  PhoneRepository,
-  UpdatePhoneInput,
-} from "../../domain/repositories/phone.repository";
+import type { PhoneRepository, UpdatePhoneInput } from "../../domain/repositories/phone.repository";
 import { NotFoundError } from "../../shared/errors/not-found.error";
 import { ValidationError } from "../../shared/errors/validation.error";
 

@@ -4,13 +4,16 @@ import { createTestApp } from "../../helpers/test-app";
 
 describe("Addresses routes", () => {
   let cleanup: () => void;
-  let app: Awaited<ReturnType<typeof createTestApp>>;
+  let disposeApp: () => void;
+  let app: Awaited<ReturnType<typeof createTestApp>>["app"];
   let contactId: number;
 
   beforeAll(async () => {
     const testDb = await setupTestDb();
     cleanup = testDb.cleanup;
-    app = await createTestApp(testDb.dbPath);
+    const testApp = await createTestApp(testDb.dbPath);
+    app = testApp.app;
+    disposeApp = testApp.dispose;
 
     const contact = await request(app).post("/contacts").send({
       firstName: "Address",
@@ -22,6 +25,7 @@ describe("Addresses routes", () => {
   });
 
   afterAll(() => {
+    disposeApp();
     cleanup();
   });
 
@@ -56,9 +60,7 @@ describe("Addresses routes", () => {
       number: 100,
     });
 
-    const response = await request(app).get(
-      `/contacts/${contactId}/addresses/${created.body.id}`
-    );
+    const response = await request(app).get(`/contacts/${contactId}/addresses/${created.body.id}`);
     expect(response.status).toBe(200);
     expect(response.body.locality).toBe("Rosario");
   });

@@ -5,16 +5,20 @@ import { createTestApp } from "../../helpers/test-app";
 describe("Contacts routes", () => {
   let dbPath: string;
   let cleanup: () => void;
-  let app: Awaited<ReturnType<typeof createTestApp>>;
+  let disposeApp: () => void;
+  let app: Awaited<ReturnType<typeof createTestApp>>["app"];
 
   beforeAll(async () => {
     const testDb = await setupTestDb();
     dbPath = testDb.dbPath;
     cleanup = testDb.cleanup;
-    app = await createTestApp(dbPath);
+    const testApp = await createTestApp(dbPath);
+    app = testApp.app;
+    disposeApp = testApp.dispose;
   });
 
   afterAll(() => {
+    disposeApp();
     cleanup();
   });
 

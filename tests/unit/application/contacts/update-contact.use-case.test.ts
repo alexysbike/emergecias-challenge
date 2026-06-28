@@ -54,7 +54,9 @@ describe("UpdateContactUseCase", () => {
 
   it("throws ConflictError when email is taken by another contact", async () => {
     const repository: ContactRepository = {
-      findByEmail: jest.fn().mockResolvedValue(createMockContact({ id: 2, email: "taken@example.com" })),
+      findByEmail: jest
+        .fn()
+        .mockResolvedValue(createMockContact({ id: 2, email: "taken@example.com" })),
       phoneTypeExists: jest.fn(),
       create: jest.fn(),
       findById: jest.fn().mockResolvedValue(createMockContact()),

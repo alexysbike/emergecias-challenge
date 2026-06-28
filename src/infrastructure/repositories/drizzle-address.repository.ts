@@ -76,11 +76,7 @@ export class DrizzleAddressRepository implements AddressRepository {
     }));
   }
 
-  async update(
-    personId: number,
-    addressId: number,
-    input: UpdateAddressInput
-  ): Promise<Address> {
+  async update(personId: number, addressId: number, input: UpdateAddressInput): Promise<Address> {
     const existing = await this.findById(personId, addressId);
     if (!existing) {
       throw new NotFoundError("Address not found");
