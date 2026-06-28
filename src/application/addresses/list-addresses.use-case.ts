@@ -1,0 +1,16 @@
+import type { Address } from "../../domain/entities/contact";
+import type { AddressRepository } from "../../domain/repositories/address.repository";
+import { NotFoundError } from "../../shared/errors/not-found.error";
+
+export class ListAddressesUseCase {
+  constructor(private readonly addressRepository: AddressRepository) {}
+
+  async execute(personId: number): Promise<Address[]> {
+    const contactExists = await this.addressRepository.contactExists(personId);
+    if (!contactExists) {
+      throw new NotFoundError("Contact not found");
+    }
+
+    return this.addressRepository.listByPersonId(personId);
+  }
+}
